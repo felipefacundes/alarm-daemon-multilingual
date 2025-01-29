@@ -64,6 +64,9 @@ offering a more user-friendly approach with enhanced features while maintaining
 security and privacy through user-level execution.
 DOCUMENTATION
 
+# Supply error prints!
+exec 2>/dev/null
+
 # Declare an associative array for multilingual messages
 declare -A MESSAGES
 if [[ "${LANG,,}" =~ pt_ ]]; then
@@ -658,55 +661,55 @@ audio_alert() {
 # Function to create an alarm
 create_alarm() {
     # Ask for year, month, day, hour, and minute using Zenity
-    year=$(zenity --entry --title="${MESSAGES[alarm_year]}" --text="${MESSAGES[enter_alarm_year]}") >/dev/null 2>&1
-    month=$(zenity --entry --title="${MESSAGES[alarm_month]}" --text="${MESSAGES[enter_alarm_month]}") >/dev/null 2>&1
-    day=$(zenity --entry --title="${MESSAGES[alarm_day]}" --text="${MESSAGES[enter_alarm_day]}") >/dev/null 2>&1
-    hour=$(zenity --entry --title="${MESSAGES[alarm_hour]}" --text="${MESSAGES[enter_alarm_hour]}") >/dev/null 2>&1
-    minute=$(zenity --entry --title="${MESSAGES[alarm_minute]}" --text="${MESSAGES[enter_alarm_minute]}") >/dev/null 2>&1
+    year=$(zenity --entry --title="${MESSAGES[alarm_year]}" --text="${MESSAGES[enter_alarm_year]}" 2>/dev/null)
+    month=$(zenity --entry --title="${MESSAGES[alarm_month]}" --text="${MESSAGES[enter_alarm_month]}" 2>/dev/null)
+    day=$(zenity --entry --title="${MESSAGES[alarm_day]}" --text="${MESSAGES[enter_alarm_day]}" 2>/dev/null)
+    hour=$(zenity --entry --title="${MESSAGES[alarm_hour]}" --text="${MESSAGES[enter_alarm_hour]}" 2>/dev/null)
+    minute=$(zenity --entry --title="${MESSAGES[alarm_minute]}" --text="${MESSAGES[enter_alarm_minute]}" 2>/dev/null)
     
     # Check if any variable is empty
     if [[ -z "$year" ]]; then
-        zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[year_empty]}" >/dev/null 2>&1
+        zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[year_empty]}" 2>/dev/null
         exit 1
     elif [[ -z "$month" ]]; then
-        zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[month_empty]}" >/dev/null 2>&1
+        zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[month_empty]}" 2>/dev/null
         exit 1
     elif [[ -z "$day" ]]; then
-        zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[day_empty]}" >/dev/null 2>&1
+        zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[day_empty]}" 2>/dev/null
         exit 1
     elif [[ -z "$hour" ]]; then
-        zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[hour_empty]}" >/dev/null 2>&1
+        zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[hour_empty]}" 2>/dev/null
         exit 1
     elif [[ -z "$minute" ]]; then
-        zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[minute_empty]}" >/dev/null 2>&1
+        zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[minute_empty]}" 2>/dev/null
         exit 1
     fi
 
     # Ask for the message to be displayed when the alarm goes off
-    message=$(zenity --entry --title="${MESSAGES[alarm_message]}" --text="${MESSAGES[enter_alarm_message]}") >/dev/null 2>&1
+    message=$(zenity --entry --title="${MESSAGES[alarm_message]}" --text="${MESSAGES[enter_alarm_message]}" 2>/dev/null)
 
     # Ask if a script/command should be executed
-    execute_script=$(zenity --question --title="${MESSAGES[execute_script]}" --text="${MESSAGES[execute_script_question]}" && echo "yes" || echo "no") >/dev/null 2>&1
+    execute_script=$(zenity --question --title="${MESSAGES[execute_script]}" --text="${MESSAGES[execute_script_question]}" && echo "yes" || echo "no" 2>/dev/null)
     
     if [[ $execute_script == "yes" ]]; then
-        script_path=$(zenity --file-selection --title="${MESSAGES[select_the_script]}") >/dev/null 2>&1
+        script_path=$(zenity --file-selection --title="${MESSAGES[select_the_script]}" 2>/dev/null)
     fi
 
     # Ask if a file should be opened with xdg-open
-    open_file=$(zenity --question --title="${MESSAGES[open_file]}" --text="${MESSAGES[open_file_question]}" && echo "yes" || echo "no") >/dev/null 2>&1
+    open_file=$(zenity --question --title="${MESSAGES[open_file]}" --text="${MESSAGES[open_file_question]}" && echo "yes" || echo "no" 2>/dev/null)
     
     if [[ $open_file == "yes" ]]; then
-        file_to_open=$(zenity --file-selection --title="${MESSAGES[open_file_select]}") >/dev/null 2>&1
+        file_to_open=$(zenity --file-selection --title="${MESSAGES[open_file_select]}" 2>/dev/null)
     fi
 
     # Ask about alarm repetition
     repeat_alarm=$(zenity --list --radiolist --title="${MESSAGES[repeat_alarm]}" \
         --text="${MESSAGES[repeat_alarm_question]}" \
         --column="${MESSAGES[select]}"  --column="${MESSAGES[option]}"  \
-        TRUE "${MESSAGES[only_this_day]}" FALSE "${MESSAGES[every_day]}" FALSE "${MESSAGES[specific_days]}") >/dev/null 2>&1
+        TRUE "${MESSAGES[only_this_day]}" FALSE "${MESSAGES[every_day]}" FALSE "${MESSAGES[specific_days]}" 2>/dev/null)
     
     if [[ $repeat_alarm == "${MESSAGES[specific_days]}" ]]; then
-        days_of_week=$(zenity --entry --title="${MESSAGES[days_of_week]}" --text="${MESSAGES[enter_days_of_week]}") >/dev/null 2>&1
+        days_of_week=$(zenity --entry --title="${MESSAGES[days_of_week]}" --text="${MESSAGES[enter_days_of_week]}" 2>/dev/null)
     fi
 
     # Alarm file name
@@ -726,7 +729,7 @@ create_alarm() {
     echo "Repetition: $repeat_alarm" >> "$alarm_file"
     [[ $repeat_alarm == "${MESSAGES[specific_days]}" ]] && echo "Days: $days_of_week" >> "$alarm_file"
     
-    zenity --info --text="${MESSAGES[alarm_created]}" >/dev/null 2>&1
+    zenity --info --text="${MESSAGES[alarm_created]}" 2>/dev/null
 }
 
 # Function to run and execute alarms as a daemon
@@ -783,10 +786,10 @@ run_alarms() {
                 }
 
                 # Display message with Zenity
-                zenity --info --text="$message" >/dev/null 2>&1 && reset_and_kill
+                zenity --info --text="$message" 2>/dev/null && reset_and_kill
 
                 # Ask if the alarm should repeat in the next 10 minutes
-                repeat_10=$(zenity --question --title="${MESSAGES[repeat_alarm_title]}" --text="${MESSAGES[repeat_alarm_10_question]}" && echo "yes" || echo "no") >/dev/null 2>&1
+                repeat_10=$(zenity --question --title="${MESSAGES[repeat_alarm_title]}" --text="${MESSAGES[repeat_alarm_10_question]}" && echo "yes" || echo "no" 2>/dev/null)
 
                 if [[ $repeat_10 == "yes" ]]; then
                     # Create a new alarm file for 10 minutes after the current alarm
