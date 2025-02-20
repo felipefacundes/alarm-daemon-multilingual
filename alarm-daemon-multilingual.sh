@@ -726,6 +726,7 @@ validate_alarm_datetime() {
         year=$(zenity --entry --title="${MESSAGES[alarm_year]}" --text="${MESSAGES[enter_alarm_year]}" 2>/dev/null)
         if [[ -z "$year" ]]; then
             zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[year_empty]}" 2>/dev/null
+            exit 1
         elif [[ ! "$year" =~ ^[0-9]{4}$ ]] || (( year < current_year )); then
             zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[year_invalid]}" 2>/dev/null
         else
@@ -737,6 +738,7 @@ validate_alarm_datetime() {
         month=$(zenity --entry --title="${MESSAGES[alarm_month]}" --text="${MESSAGES[enter_alarm_month]}" 2>/dev/null)
         if [[ -z "$month" ]]; then
             zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[month_empty]}" 2>/dev/null
+            exit 1
         elif [[ ! "$month" =~ ^(0[1-9]|1[0-2])$ ]]; then
             zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[month_invalid]}" 2>/dev/null
         else
@@ -748,6 +750,7 @@ validate_alarm_datetime() {
         day=$(zenity --entry --title="${MESSAGES[alarm_day]}" --text="${MESSAGES[enter_alarm_day]}" 2>/dev/null)
         if [[ -z "$day" ]]; then
             zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[day_empty]}" 2>/dev/null
+            exit 1
         elif [[ ! "$day" =~ ^(0[1-9]|[12][0-9]|3[01])$ ]]; then
             zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[day_invalid]}" 2>/dev/null
         else
@@ -759,6 +762,7 @@ validate_alarm_datetime() {
         hour=$(zenity --entry --title="${MESSAGES[alarm_hour]}" --text="${MESSAGES[enter_alarm_hour]}" 2>/dev/null)
         if [[ -z "$hour" ]]; then
             zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[hour_empty]}" 2>/dev/null
+            exit 1
         elif [[ ! "$hour" =~ ^([01][0-9]|2[0-3])$ ]]; then
             zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[hour_invalid]}" 2>/dev/null
         else
@@ -770,6 +774,7 @@ validate_alarm_datetime() {
         minute=$(zenity --entry --title="${MESSAGES[alarm_minute]}" --text="${MESSAGES[enter_alarm_minute]}" 2>/dev/null)
         if [[ -z "$minute" ]]; then
             zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[minute_empty]}" 2>/dev/null
+            exit 1
         elif [[ ! "$minute" =~ ^([0-5][0-9])$ ]]; then
             zenity --error --title="${MESSAGES[error_data]}" --text="${MESSAGES[minute_invalid]}" 2>/dev/null
         else
@@ -840,6 +845,9 @@ run_alarms() {
         current_hour=$(LC_ALL=c date +%H)
         current_minute=$(LC_ALL=c date +%M)
         current_weekday=$(LC_ALL=c date +%a) # e.g., Mon, Tue, Wed
+        
+        # Wait 10 seconds before checking alarms again
+        sleep 10
 
         for alarm_file in "$ALARM_DIR"/*.alarm; do
             # Check if the file exists
@@ -860,12 +868,10 @@ run_alarms() {
             days_of_week=$(grep "Days:" "$alarm_file" | cut -d ' ' -f 2-)
 
             # Check if the alarm is for the current moment
-            # if [[ $year -eq $current_year && $month -eq $current_month && $day -eq $current_day && $hour -eq $current_hour && $minute -eq $current_minute ]] || 
-            #    [[ $repeat_alarm == "${MESSAGES[every_day]}" ]] || 
-            #    ([[ $repeat_alarm == "${MESSAGES[specific_days]}" ]] && [[ $days_of_week == *"$current_weekday"* ]]); then
-
+            # Em '[ "$repeat_alarm" == "${MESSAGES[every_day]}" ]', a lógica '&& [ "$day" -ge "$current_day" ]' foi removida, pois, do contrário, o alarme duraria aproximadamente duas semanas naquele mês.
+            # In '[ "$repeat_alarm" == "${MESSAGES[every_day]}" ]', the logic '&& [ "$day" -ge "$current_day" ]' was removed because, otherwise, the alarm would last approximately two weeks in that month.
             if { [ "$year" -eq "$current_year" ] && [ "$month" -eq "$current_month" ] && [ "$day" -eq "$current_day" ] && [ "$hour" -eq "$current_hour" ] && [ "$minute" -eq "$current_minute" ]; } ||
-                { [ "$repeat_alarm" == "${MESSAGES[every_day]}" ] && [ "$hour" -eq "$current_hour" ] && [ "$minute" -eq "$current_minute" ]; } ||
+                { [ "$repeat_alarm" == "${MESSAGES[every_day]}" ] && [ "$year" -ge "$current_year" ] && [ "$month" -ge "$current_month" ] && [ "$hour" -eq "$current_hour" ] && [ "$minute" -eq "$current_minute" ]; } ||
                 { [ "$repeat_alarm" == "${MESSAGES[specific_days]}" ] && [[ "$days_of_week" == *"$current_weekday"* ]] && [ "$hour" -eq "$current_hour" ] && [ "$minute" -eq "$current_minute" ]; }; then
                 # Run visual and audio alert in the background
                 visual_alert &
@@ -895,7 +901,7 @@ run_alarms() {
                     new_minute=$(LC_ALL=c date -d "+10 minutes" +%M)
                     new_hour=$(LC_ALL=c date -d "+10 minutes" +%H)
                     new_alarm_file="$ALARM_DIR/alarm_$(LC_ALL=c date +'%Y-%m-%d_%H:%M:%S')_repeat.alarm"
-                    cp "$alarm_file" "$new_alarm_file"
+                    cp -f "$alarm_file" "$new_alarm_file"
                     sed -i "s/^Hour:.*/Hour: $new_hour/" "$new_alarm_file"
                     sed -i "s/^Minute:.*/Minute: $new_minute/" "$new_alarm_file"
                     sed -i "s/^Repetition:.*/Repetition: ${MESSAGES[only_this_day]}/" "$new_alarm_file"
@@ -903,13 +909,10 @@ run_alarms() {
 
                 # If the alarm is not set to repeat, delete the file after execution
                 if [[ $repeat_alarm == "${MESSAGES[only_this_day]}" ]]; then
-                    rm "$alarm_file"
+                    rm -f "$alarm_file"
                 fi
             fi
         done
-
-        # Wait 10 seconds before checking alarms again
-        sleep 10
     done
 }
 
