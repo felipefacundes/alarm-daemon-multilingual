@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # License: GPLv3
 # Credits: Felipe Facundes
 
@@ -67,6 +67,11 @@ DOCUMENTATION
 # Supply error prints!
 exec 2>/dev/null
 
+SCRIPT="${0##*/}"
+TMPDIR="${TMPDIR:-/tmp}"
+LOCKDIR="${TMPDIR}/${SCRIPT%.*}"
+SOCKET_FILE="${LOCKDIR}/${SCRIPT%.*}.socket"
+
 # Declare an associative array for multilingual messages
 declare -A MESSAGES
 if [[ "${LANG,,}" =~ pt_ ]]; then
@@ -87,6 +92,8 @@ if [[ "${LANG,,}" =~ pt_ ]]; then
         [hour_invalid]="Hora inválida! Use um valor entre 00 e 23."
         [minute_invalid]="Minuto inválido! Use um valor entre 00 e 59."
         [error_data]="Erro nos dados"
+		["no_daemon"]="Sem execução!"
+		["no_socket"]="O alarme não está em execução. Execute: $SCRIPT -r"
         ["year_empty"]="O campo do ano está vazio."
         ["month_empty"]="O campo do mês está vazio."
         ["day_empty"]="O campo do dia está vazio."
@@ -96,6 +103,8 @@ if [[ "${LANG,,}" =~ pt_ ]]; then
         ["enter_alarm_message"]="Digite a mensagem a ser exibida quando o alarme tocar:"
         ["execute_script"]="Execute script/comando?"
         ["execute_script_question"]="Você deseja executar um script ou comando?"
+        ["execute_method"]="Como deseja executar?"
+        ["enter_command"]="Digite o comando:"
         ["select_the_script"]="Selecione o script/comando a ser executado:"
         ["open_file"]="Abrir arquivo?"
         ["open_file_question"]="Você deseja abrir um arquivo com xdg-open?"
@@ -137,6 +146,8 @@ elif [[ "${LANG,,}" =~ fr_ ]]; then
         ["hour_invalid"]="Heure invalide ! Utilisez une valeur entre 00 et 23."
         ["minute_invalid"]="Minute invalide ! Utilisez une valeur entre 00 et 59."
         ["error_data"]="Erreur de données"
+		["no_daemon"]="Pas en cours d'exécution !"
+    	["no_socket"]="L'alarme n'est pas en cours d'exécution. Exécutez : $SCRIPT -r"
         ["year_empty"]="Le champ de l'année est vide."
         ["month_empty"]="Le champ du mois est vide."
         ["day_empty"]="Le champ du jour est vide."
@@ -146,6 +157,8 @@ elif [[ "${LANG,,}" =~ fr_ ]]; then
         ["enter_alarm_message"]="Entrez le message à afficher lorsque l'alarme sonne :"
         ["execute_script"]="Exécuter un script/commande ?"
         ["execute_script_question"]="Voulez-vous exécuter un script ou une commande ?"
+		["execute_method"]="Comment souhaitez-vous exécuter ?"
+		["enter_command"]="Entrez la commande :"
         ["select_the_script"]="Sélectionnez le script/la commande à exécuter :"
         ["open_file"]="Ouvrir un fichier ?"
         ["open_file_question"]="Voulez-vous ouvrir un fichier avec xdg-open ?"
@@ -187,6 +200,8 @@ elif [[ "${LANG,,}" =~ de_ ]]; then
         ["hour_invalid"]="Ungültige Stunde! Verwenden Sie einen Wert zwischen 00 und 23."
         ["minute_invalid"]="Ungültige Minute! Verwenden Sie einen Wert zwischen 00 und 59."
         ["error_data"]="Datenfehler"
+		["no_daemon"]="Nicht in Ausführung!"
+    	["no_socket"]="Der Alarm wird nicht ausgeführt. Führen Sie aus: $SCRIPT -r"
         ["year_empty"]="Das Jahr-Feld ist leer."
         ["month_empty"]="Das Monat-Feld ist leer."
         ["day_empty"]="Das Tag-Feld ist leer."
@@ -196,6 +211,8 @@ elif [[ "${LANG,,}" =~ de_ ]]; then
         ["enter_alarm_message"]="Geben Sie die Nachricht ein, die angezeigt werden soll, wenn der Alarm ausgelöst wird:"
         ["execute_script"]="Skript/Befehl ausführen?"
         ["execute_script_question"]="Möchten Sie ein Skript oder einen Befehl ausführen?"
+		["execute_method"]="Wie möchten Sie ausführen?"  
+		["enter_command"]="Geben Sie den Befehl ein:"  
         ["select_the_script"]="Wählen Sie das Skript/den Befehl aus, das/der ausgeführt werden soll:"
         ["open_file"]="Datei öffnen?"
         ["open_file_question"]="Möchten Sie eine Datei mit xdg-open öffnen?"
@@ -237,6 +254,8 @@ elif [[ "${LANG,,}" =~ ro_ ]]; then
         ["hour_invalid"]="Oră invalidă! Utilizați o valoare între 00 și 23."
         ["minute_invalid"]="Minut invalid! Utilizați o valoare între 00 și 59."
         ["error_data"]="Eroare de date"
+		["no_daemon"]="Nu rulează!"
+    	["no_socket"]="Alarma nu rulează. Executați: $SCRIPT -r"
         ["year_empty"]="Câmpul pentru anul este gol."
         ["month_empty"]="Câmpul pentru lună este gol."
         ["day_empty"]="Câmpul pentru zi este gol."
@@ -246,6 +265,8 @@ elif [[ "${LANG,,}" =~ ro_ ]]; then
         ["enter_alarm_message"]="Introduceți mesajul care va fi afișat când alarma se declanșează:"
         ["execute_script"]="Executați script/comandă?"
         ["execute_script_question"]="Doriți să executați un script sau o comandă?"
+		["execute_method"]="Cum doriți să executați?"  
+		["enter_command"]="Introduceți comanda:"
         ["select_the_script"]="Selectați scriptul/comanda de executat:"
         ["open_file"]="Deschideți fișierul?"
         ["open_file_question"]="Doriți să deschideți un fișier cu xdg-open?"
@@ -287,6 +308,8 @@ elif [[ "${LANG,,}" =~ ru_ ]]; then
         ["hour_invalid"]="Недопустимый час! Используйте значение от 00 до 23."
         ["minute_invalid"]="Недопустимая минута! Используйте значение от 00 до 59."
         ["error_data"]="Ошибка данных"
+		["no_daemon"]="Не выполняется!"
+		["no_socket"]="Тревога не активна. Запустите: $SCRIPT -r"
         ["year_empty"]="Поле года пустое."
         ["month_empty"]="Поле месяца пустое."
         ["day_empty"]="Поле дня пустое."
@@ -296,6 +319,8 @@ elif [[ "${LANG,,}" =~ ru_ ]]; then
         ["enter_alarm_message"]="Введите сообщение, которое будет отображаться при срабатывании будильника:"
         ["execute_script"]="Выполнить скрипт/команду?"
         ["execute_script_question"]="Хотите выполнить скрипт или команду?"
+		["execute_method"]="Как вы хотите выполнить?"  
+		["enter_command"]="Введите команду:"  
         ["select_the_script"]="Выберите скрипт/команду для выполнения:"
         ["open_file"]="Открыть файл?"
         ["open_file_question"]="Хотите открыть файл с помощью xdg-open?"
@@ -337,6 +362,8 @@ elif [[ "${LANG,,}" =~ zh_ ]]; then
         ["hour_invalid"]="无效的小时！请输入00到23之间的值。"
         ["minute_invalid"]="无效的分钟！请输入00到59之间的值。"
         ["error_data"]="数据错误"
+    	["no_daemon"]="未运行！"
+    	["no_socket"]="警报未运行。请执行: $SCRIPT -r"
         ["year_empty"]="年份字段为空。"
         ["month_empty"]="月份字段为空。"
         ["day_empty"]="日期字段为空。"
@@ -346,6 +373,8 @@ elif [[ "${LANG,,}" =~ zh_ ]]; then
         ["enter_alarm_message"]="请输入闹钟响起时显示的消息："
         ["execute_script"]="执行脚本/命令？"
         ["execute_script_question"]="您想要执行脚本或命令吗？"
+		["execute_method"]="您想如何执行？"  
+		["enter_command"]="请输入命令："  
         ["select_the_script"]="选择要执行的脚本/命令："
         ["open_file"]="打开文件？"
         ["open_file_question"]="您想用 xdg-open 打开文件吗？"
@@ -387,6 +416,8 @@ elif [[ "${LANG,,}" =~ ko_ ]]; then
         ["hour_invalid"]="잘못된 시간입니다! 00부터 23 사이의 값을 사용하세요."
         ["minute_invalid"]="잘못된 분입니다! 00부터 59 사이의 값을 사용하세요."
         ["error_data"]="데이터 오류"
+		["no_daemon"]="실행 중이 아닙니다!"
+		["no_socket"]="알람이 실행되고 있지 않습니다. 실행 명령: $SCRIPT -r"
         ["year_empty"]="연도 필드가 비어 있습니다."
         ["month_empty"]="월 필드가 비어 있습니다."
         ["day_empty"]="날짜 필드가 비어 있습니다."
@@ -396,6 +427,8 @@ elif [[ "${LANG,,}" =~ ko_ ]]; then
         ["enter_alarm_message"]="알람이 울릴 때 표시할 메시지를 입력하세요:"
         ["execute_script"]="스크립트/명령 실행?"
         ["execute_script_question"]="스크립트나 명령을 실행하시겠습니까?"
+		["execute_method"]="어떻게 실행하시겠습니까?"  
+		["enter_command"]="명령어를 입력하세요:"  
         ["select_the_script"]="실행할 스크립트/명령을 선택하세요:"
         ["open_file"]="파일 열기?"
         ["open_file_question"]="xdg-open으로 파일을 열겠습니까?"
@@ -437,6 +470,8 @@ elif [[ "${LANG,,}" =~ he_ ]]; then
         ["hour_invalid"]="!שעה לא חוקית השתמש בערך בין 00 ל-23."
         ["minute_invalid"]="!דקה לא חוקית השתמש בערך בין 00 ל-59."
         ["error_data"]="שגיאת נתונים"
+		["no_daemon"]="לא בפועל!"
+		["no_socket"]="האזעקה לא פועלת. הפעל: $SCRIPT -r"
         ["year_empty"]="שדה השנה ריק."
         ["month_empty"]="שדה החודש ריק."
         ["day_empty"]="שדה היום ריק."
@@ -446,6 +481,8 @@ elif [[ "${LANG,,}" =~ he_ ]]; then
         ["enter_alarm_message"]="הזן את ההודעה שתוצג כאשר ההתראה תופעל:"
         ["execute_script"]="להריץ סקריפט/פקודה?"
         ["execute_script_question"]="האם ברצונך להריץ סקריפט או פקודה?"
+		["execute_method"]="איך תרצה להפעיל?"  
+		["enter_command"]="הזן את הפקודה:"  
         ["select_the_script"]="בחר את הסקריפט/פקודה להרצה:"
         ["open_file"]="לפתוח קובץ?"
         ["open_file_question"]="האם ברצונך לפתוח קובץ עם xdg-open?"
@@ -487,6 +524,8 @@ elif [[ "${LANG,,}" =~ ar_ ]]; then
         ["hour_invalid"]="!ساعة غير صالحة استخدم قيمة بين 00 و 23."
         ["minute_invalid"]="!دقيقة غير صالحة استخدم قيمة بين 00 و 59."
         ["error_data"]="خطأ في البيانات"
+		["no_daemon"]="لا يعمل!"
+		["no_socket"]="إنذار غير نشط. نفّذ: $SCRIPT -r"
         ["year_empty"]="حقل السنة فارغ."
         ["month_empty"]="حقل الشهر فارغ."
         ["day_empty"]="حقل اليوم فارغ."
@@ -496,6 +535,8 @@ elif [[ "${LANG,,}" =~ ar_ ]]; then
         ["enter_alarm_message"]="أدخل الرسالة التي ستظهر عند تشغيل التنبيه:"
         ["execute_script"]="تشغيل سكربت/أمر؟"
         ["execute_script_question"]="هل ترغب في تشغيل سكربت أو أمر؟"
+		["execute_method"]="كيف تريد التنفيذ؟"  
+		["enter_command"]="أدخل الأمر:"  
         ["select_the_script"]="اختر السكربت/الأمر للتشغيل:"
         ["open_file"]="فتح ملف؟"
         ["open_file_question"]="هل ترغب في فتح ملف باستخدام xdg-open؟"
@@ -537,6 +578,8 @@ elif [[ "${LANG,,}" =~ ja_ ]]; then
         ["hour_invalid"]="無効な時間です！ 00から23の値を使用してください。"
         ["minute_invalid"]="無効な分です！ 00から59の値を使用してください。"
         ["error_data"]="データエラー"
+		["no_daemon"]="実行されていません！"
+		["no_socket"]="アラームが作動していません。実行: $SCRIPT -r"
         ["year_empty"]="年のフィールドが空です。"
         ["month_empty"]="月のフィールドが空です。"
         ["day_empty"]="日のフィールドが空です。"
@@ -546,6 +589,8 @@ elif [[ "${LANG,,}" =~ ja_ ]]; then
         ["enter_alarm_message"]="アラームが鳴ったときに表示するメッセージを入力してください:"
         ["execute_script"]="スクリプト/コマンドを実行しますか?"
         ["execute_script_question"]="スクリプトまたはコマンドを実行しますか?"
+		["execute_method"]="どのように実行しますか？"
+		["enter_command"]="コマンドを入力してください："
         ["select_the_script"]="実行するスクリプト/コマンドを選択してください:"
         ["open_file"]="ファイルを開きますか?"
         ["open_file_question"]="xdg-openでファイルを開きますか?"
@@ -587,6 +632,8 @@ elif [[ "${LANG,,}" =~ es_ ]]; then
         ["hour_invalid"]="¡Hora inválida! Use un valor entre 00 y 23."
         ["minute_invalid"]="¡Minuto inválido! Use un valor entre 00 y 59."
         ["error_data"]="Error de Datos"
+		["no_daemon"]="¡No se está ejecutando!"
+		["no_socket"]="La alarma no está en ejecución. Ejecute: $SCRIPT -r"
         ["year_empty"]="El campo del año está vacío."
         ["month_empty"]="El campo del mes está vacío."
         ["day_empty"]="El campo del día está vacío."
@@ -596,6 +643,8 @@ elif [[ "${LANG,,}" =~ es_ ]]; then
         ["enter_alarm_message"]="Introduce el mensaje que se mostrará cuando suene la alarma:"
         ["execute_script"]="¿Ejecutar script/comando?"
         ["execute_script_question"]="¿Quieres ejecutar un script o comando?"
+		["execute_method"]="¿Cómo deseas ejecutarlo?"
+		["enter_command"]="Introduce el comando:"
         ["select_the_script"]="Selecciona el script/comando a ejecutar:"
         ["open_file"]="¿Abrir archivo?"
         ["open_file_question"]="¿Quieres abrir un archivo con xdg-open?"
@@ -637,6 +686,8 @@ else
         ["hour_invalid"]="Invalid hour! Use a value between 00 and 23."
         ["minute_invalid"]="Invalid minute! Use a value between 00 and 59."
         ["error_data"]="Data Error"
+		["no_daemon"]="Not running!"
+		["no_socket"]="Alarm is not running. Execute: $SCRIPT -r"
         ["year_empty"]="The year field is empty."
         ["month_empty"]="The month field is empty."
         ["day_empty"]="The day field is empty."
@@ -646,6 +697,8 @@ else
         ["enter_alarm_message"]="Enter the message to display when the alarm goes off:"
         ["execute_script"]="Execute script/command?"
         ["execute_script_question"]="Do you want to execute a script or command?"
+		["execute_method"]="How do you want to execute?"
+		["enter_command"]="Enter the command:"
         ["select_the_script"]="Select the script/command to execute:"
         ["open_file"]="Open file?"
         ["open_file_question"]="Do you want to open a file with xdg-open?"
@@ -670,9 +723,6 @@ else
         ["help_help"]="  -h    Show this help"
     )
 fi
-
-# Set environment for date
-#LC_ALL=c
 
 # Directory for alarms
 ALARM_DIR="$HOME/.alarms"
@@ -795,9 +845,22 @@ create_alarm() {
     # Ask if a script/command should be executed
     execute_script=$(zenity --question --title="${MESSAGES[execute_script]}" --text="${MESSAGES[execute_script_question]}" && echo "yes" || echo "no" 2>/dev/null)
     
-    if [[ "$execute_script" == "yes" ]]; then
-        script_path=$(zenity --file-selection --title="${MESSAGES[select_the_script]}" 2>/dev/null)
-    fi
+	if [[ "$execute_script" == "yes" ]]; then
+		method=$(zenity --list --radiolist \
+			--title="${MESSAGES[execute_script]}" \
+			--text="${MESSAGES[execute_method]}" \
+			--column="${MESSAGES[select]}" --column="${MESSAGES[option]}" \
+			TRUE "${MESSAGES[open_file]}" FALSE "${MESSAGES[execute_script]}" 2>/dev/null)
+
+		if [ "$method" == "${MESSAGES[open_file]}" ]; then
+			script_path=$(zenity --file-selection --title="${MESSAGES[select_the_script]}" 2>/dev/null)
+
+		elif [ "$method" == "${MESSAGES[execute_script]}" ]; then
+			script_path=$(zenity --entry --title="${MESSAGES[execute_script]}" --text="${MESSAGES[enter_command]}" 2>/dev/null)
+
+		fi
+
+	fi
 
     # Ask if a file should be opened with xdg-open
     open_file=$(zenity --question --title="${MESSAGES[open_file]}" --text="${MESSAGES[open_file_question]}" && echo "yes" || echo "no" 2>/dev/null)
@@ -837,21 +900,20 @@ create_alarm() {
 }
 
 lock_generate() { 
-    touch "$1" && sleep 120 && rm "$1"
+    touch "$1" && sleep 70 && rm -f "$1"
 }
 
 # Function to run and execute alarms as a daemon
 run_alarms() {
     while true; do
-        SCRIPT="${0##*/}"
-        TMPDIR="${TMPDIR:-/tmp}"
-        LOCKDIR="${TMPDIR}/${SCRIPT%.*}"
         current_year=$(LC_ALL=c date +%Y)
         current_month=$(LC_ALL=c date +%m)
         current_day=$(LC_ALL=c date +%d)
         current_hour=$(LC_ALL=c date +%H)
         current_minute=$(LC_ALL=c date +%M)
         current_weekday=$(date +%a | tr '[A-Z]' '[a-z]') # e.g., Mon, Tue, Wed
+
+		[[ ! -f "$SOCKET_FILE" ]] && touch "$SOCKET_FILE" && { pgrep -f "$SCRIPT" | tee "$SOCKET_FILE" >/dev/null; }
         
         for alarm_file in "$ALARM_DIR"/*.alarm; do
             # Check if the file exists
@@ -897,6 +959,8 @@ run_alarms() {
                 #     continue
                 # fi
 
+                [ "$current_minute" -ne "$minute" ] && [ -f "$lock_file" ] && rm -f "$lock_file"
+
                 if [ "$current_minute" -eq "$minute" ] && [ -f "$lock_file" ]; then
                     continue
                 fi
@@ -940,20 +1004,30 @@ run_alarms() {
                 # Ask if the alarm should repeat in the next 10 minutes
                 repeat_10=$(zenity --question --title="${MESSAGES[repeat_alarm_title]}" --text="${MESSAGES[repeat_alarm_10_question]}" && echo "yes" || echo "no" 2>/dev/null)
 
-                if [[ "$repeat_10" == "yes" ]]; then
-                    # Create a new alarm file for 10 minutes after the current alarm
-                    new_minute=$(LC_ALL=c date -d "+10 minutes" +%M)
-                    new_hour=$(LC_ALL=c date -d "+10 minutes" +%H)
-                    new_alarm_file="$ALARM_DIR/alarm_$(LC_ALL=c date +'%Y-%m-%d_%H:%M:%S')_repeat.alarm"
-                    cp -f "$alarm_file" "$new_alarm_file"
-                    sed -i "s/^Hour:.*/Hour: $new_hour/" "$new_alarm_file"
-                    sed -i "s/^Minute:.*/Minute: $new_minute/" "$new_alarm_file"
-                    sed -i "s/^Repetition:.*/Repetition: ${MESSAGES[only_this_day]}/" "$new_alarm_file"
-                fi
+				if [[ "$repeat_10" == "yes" ]]; then
+					# Calculate the new date and time, 10 minutes later, considering the transition of the day
+					new_year=$(LC_ALL=c date -d "+10 minutes" +%Y)
+					new_month=$(LC_ALL=c date -d "+10 minutes" +%m)
+					new_day=$(LC_ALL=c date -d "+10 minutes" +%d)
+					new_hour=$(LC_ALL=c date -d "+10 minutes" +%H)
+					new_minute=$(LC_ALL=c date -d "+10 minutes" +%M)
+					
+					# Create a new alarm file with the updated date and time
+					new_alarm_file="$ALARM_DIR/alarm_$(LC_ALL=c date +'%Y-%m-%d_%H:%M:%S')_repeat.alarm"
+					cp -f "$alarm_file" "$new_alarm_file"
+					
+					# Update date and time fields in the new file
+					sed -i "s/^Year:.*/Year: $new_year/" "$new_alarm_file"
+					sed -i "s/^Month:.*/Month: $new_month/" "$new_alarm_file"
+					sed -i "s/^Day:.*/Day: $new_day/" "$new_alarm_file"
+					sed -i "s/^Hour:.*/Hour: $new_hour/" "$new_alarm_file"
+					sed -i "s/^Minute:.*/Minute: $new_minute/" "$new_alarm_file"
+					sed -i "s/^Repetition:.*/Repetition: ${MESSAGES[only_this_day]}/" "$new_alarm_file"
+				fi
 
                 # If the alarm is not set to repeat, delete the file after execution
                 if [[ "$repeat_alarm" == "${MESSAGES[only_this_day]}" ]]; then
-                    rm -f "$alarm_file"
+					rm -f "$alarm_file"
                 fi
 
                 if [ "$current_minute" -eq "$minute" ] && [ ! -f "$lock_file" ]; then
@@ -980,7 +1054,11 @@ show_help() {
 # Check options passed to the script
 case "$1" in
     -c)
-        create_alarm
+		if [[ -f "$SOCKET_FILE" ]]; then
+        	create_alarm
+		else
+			zenity --error --title="${MESSAGES["no_daemon"]}" --text="${MESSAGES["no_socket"]}" 2>/dev/null
+		fi
         ;;
     -r)
         run_alarms
